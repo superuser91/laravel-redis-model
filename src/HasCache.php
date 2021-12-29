@@ -20,7 +20,7 @@ trait HasCache
 
     public static function getCacheKeyList(): string
     {
-        return sprintf('all_%s_cached_keys', Str::slug(__CLASS__) . '.');
+        return md5(sprintf('all_%s_cached_keys', Str::slug(__CLASS__) . '.'));
     }
 
     final public static function findList($ids): Collection
