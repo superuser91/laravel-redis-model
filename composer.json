@@ -1,0 +1,22 @@
+{
+    "name": "vgplay/laravel-redis-model",
+    "description": "A simple redis cache library for laravel eloquent model",
+    "type": "library",
+    "require": {
+        "php": "^7.0",
+        "laravel/framework": "^6.0|^7.0|^8.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Vgplay\\LaravelRedisModel\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "dung199551",
+            "email": "dung199551@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
