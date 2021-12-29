@@ -14,8 +14,6 @@ class Setting extends Model implements Cacheable
 
     ...
 }
-
-
 ```
 
 2. use `fromCache()` static method to retrieve model data from cache storage

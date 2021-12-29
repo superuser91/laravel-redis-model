@@ -27,7 +27,7 @@ class CacheQueryBuilder implements BuilderInterface
 
     public function find($id)
     {
-        return Cache::remember($this->model::getCacheKey($id), config('cache.ttl.id'), function () use ($id) {
+        return Cache::remember($this->model::getCacheKey($id), $this->model::cacheTimeout(), function () use ($id) {
             return $this->model::cacheWithRelation()->where($this->model::primaryCacheKey(), $id)->first();
         });
     }
