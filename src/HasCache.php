@@ -2,12 +2,34 @@
 
 namespace Vgplay\LaravelRedisModel;
 
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use \Vgplay\LaravelRedisModel\Contracts\BuilderInterface;
 
 trait HasCache
 {
+    protected static function bootHasCache()
+    {
+        static::created(function ($instance) {
+            Cache::forget(static::getCacheKeyList());
+        });
+
+        static::updated(function ($instance) {
+            Cache::forget(static::getCacheKey($instance->{static::primaryCacheKey()}));
+        });
+
+        static::deleted(function ($instance) {
+            Cache::forget(static::getCacheKey($instance->{static::primaryCacheKey()}));
+            Cache::forget(static::getCacheKeyList());
+        });
+
+        if (method_exists(statis::class, 'trashed')) {
+            static::restored(function ($instance) {
+                Cache::forget(static::getCacheKey($instance->{static::primaryCacheKey()}));
+            });
+        }
+    }
+
     public static function primaryCacheKey(): string
     {
         return 'id';
@@ -15,7 +37,7 @@ trait HasCache
 
     public static function getCacheKey($id): string
     {
-        return md5(sprintf("%s%s",Str::slug(__CLASS__) , $id));
+        return md5(sprintf("%s%s", Str::slug(__CLASS__), $id));
     }
 
     public static function getCacheKeyList(): string
@@ -23,69 +45,18 @@ trait HasCache
         return md5(sprintf('all_%s_cached_keys', Str::slug(__CLASS__) . '.'));
     }
 
-    final public static function findList($ids): Collection
+    public static function cacheTimeout(): int
     {
-        $ids = is_array($ids) ? $ids : [$ids];
-
-        $available = collect(static::availableFromCache($ids));
-
-        $missing = collect(static::loadMissingItems($available, $ids));
-
-        return $available->merge($missing);
-    }
-
-    protected static function availableFromCache(array $ids)
-    {
-        $keys = array_map(function ($id) {
-            return static::getCacheKey($id);
-        }, $ids);
-
-        return Cache::many($keys);
-    }
-
-    public static function retrieveFromCache($id)
-    {
-        return Cache::remember(static::getCacheKey($id), config('cache.ttl.id'), function () use ($id) {
-            return static::cacheWithRelation()->where(static::primaryCacheKey(), $id)->first();
-        });
-    }
-
-    private static function loadMissingItems($items, $ids): Collection
-    {
-        $missingIds = static::missingIds($items, $ids);
-
-        if (empty($missingIds)) return collect([]);
-
-        $missingItems = static::cacheWithRelation($missingIds)
-            ->whereIn(static::primaryCacheKey(), $missingIds)
-            ->get();
-
-        foreach ($missingItems as $item) {
-            Cache::put(static::getCacheKey($item->{static::primaryCacheKey()}), $item, static::cacheTimeout());
-        }
-
-        return $missingItems->mapWithKeys(function ($item) {
-            return [static::getCacheKey($item->{static::primaryCacheKey()}) => $item];
-        });
-    }
-
-    protected static function cacheTimeout() {
-        return config('cache.ttl.id');
-    }
-
-    private static function missingIds($items, $ids): array
-    {
-        $missingIds = [];
-        foreach ($ids as $id) {
-            if (Cache::missing(static::getCacheKey($id))) {
-                $missingIds[] = $id;
-            }
-        }
-        return $missingIds;
+        return (int) config('cache.ttl.id', 24 * 3600);
     }
 
     public function scopeCacheWithRelation($query)
     {
         return $query;
+    }
+
+    final public static function fromCache(): BuilderInterface
+    {
+        return new CacheQueryBuilder(static::class);
     }
 }

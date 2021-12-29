@@ -2,6 +2,8 @@
 
 namespace Vgplay\LaravelRedisModel\Contracts;
 
+use \Vgplay\LaravelRedisModel\Contracts\BuilderInterface;
+
 interface Cacheable
 {
     public static function primaryCacheKey(): string;
@@ -10,9 +12,7 @@ interface Cacheable
 
     public static function getCacheKeyList(): string;
 
-    public static function findList(array $ids);
-
-    public static function retrieveFromCache($id);
+    public static function cacheTimeout(): int;
 
     public function scopeCacheWithRelation($query);
 }
