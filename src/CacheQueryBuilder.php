@@ -40,7 +40,7 @@ class CacheQueryBuilder implements BuilderInterface
 
         $missing = collect($this->loadMissingItems($ids));
 
-        return $available->merge($missing);
+        return $available->merge($missing)->values();
     }
 
     public function all(): Collection
