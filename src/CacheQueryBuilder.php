@@ -36,6 +36,8 @@ class CacheQueryBuilder implements BuilderInterface
     {
         $ids = is_array($ids) ? $ids : [$ids];
 
+        if (count($ids) == 0) return collect([]);
+
         $available = collect($this->availableFromCache($ids));
 
         $missing = collect($this->loadMissingItems($ids));
