@@ -5,6 +5,7 @@ namespace Vgplay\LaravelRedisModel;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use \Vgplay\LaravelRedisModel\Contracts\BuilderInterface;
+use Vgplay\LaravelRedisModel\Contracts\Cacheable;
 
 trait HasCache
 {
@@ -12,20 +13,24 @@ trait HasCache
     {
         static::created(function ($instance) {
             Cache::forget(static::getCacheKeyList());
+            static::flushRelationship($instance);
         });
 
         static::updated(function ($instance) {
             Cache::forget(static::getCacheKey($instance->{static::primaryCacheKey()}));
+            static::flushRelationship($instance);
         });
 
         static::deleted(function ($instance) {
             Cache::forget(static::getCacheKey($instance->{static::primaryCacheKey()}));
             Cache::forget(static::getCacheKeyList());
+            static::flushRelationship($instance);
         });
 
         if (method_exists(statis::class, 'trashed')) {
             static::restored(function ($instance) {
                 Cache::forget(static::getCacheKey($instance->{static::primaryCacheKey()}));
+                static::flushRelationship($instance);
             });
         }
     }
@@ -58,5 +63,15 @@ trait HasCache
     final public static function fromCache(): BuilderInterface
     {
         return new CacheQueryBuilder(static::class);
+    }
+
+    protected static function flushRelationship($instance)
+    {
+        foreach (($instance->touches ?? []) as $relation) {
+            $touch = $instance->{$relation};
+            if ($touch instanceof Cacheable) {
+                Cache::forget($touch->getCacheKey($touch->{$touch->primaryCacheKey()}));
+            }
+        }
     }
 }
