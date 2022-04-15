@@ -11,6 +11,14 @@ trait HasCache
 {
     protected static function bootHasCache()
     {
+        static::updating(function ($instance) {
+            static::flushRelationship($instance);
+        });
+
+        static::deleting(function ($instance) {
+            static::flushRelationship($instance);
+        });
+
         static::created(function ($instance) {
             Cache::forget(static::getCacheKeyList());
             static::flushRelationship($instance);
@@ -65,13 +73,28 @@ trait HasCache
         return new CacheQueryBuilder(static::class);
     }
 
-    protected static function flushRelationship($instance)
+    protected static function flushRelationship($new)
     {
-        foreach (($instance->touches ?? []) as $relation) {
-            $touch = $instance->{$relation};
-            if ($touch instanceof Cacheable) {
-                Cache::forget($touch->getCacheKey($touch->{$touch->primaryCacheKey()}));
+        $origin = static::getOrigin($new);
+        foreach (($new->getTouchedRelations()) as $relation) {
+            $newRelation = $new->{$relation};
+            $oldRelation = $origin->{$relation};
+            if ($newRelation instanceof Cacheable) {
+                Cache::forget($newRelation->getCacheKey($newRelation->{$newRelation->primaryCacheKey()}));
+            }
+            if ($oldRelation instanceof Cacheable) {
+                Cache::forget($oldRelation->getCacheKey($oldRelation->{$oldRelation->primaryCacheKey()}));
             }
         }
+    }
+
+    public static function getOrigin($instance)
+    {
+        $origin = new static;
+        foreach ($instance->getOriginal() as $k => $v) {
+            $origin->{$k} = $v;
+        }
+
+        return $origin;
     }
 }
